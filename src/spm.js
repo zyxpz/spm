@@ -1,124 +1,137 @@
-const loop = () => { }
+/* global window document */
+const loop = () => { };
 
 export default class Spm {
   constructor(opts) {
-    this.url = opts.url
+    this.url = opts.url;
 
-    this.type = opts.type || 'GET'
+    this.params = opts.params;
 
-    this.ok = opts.ok || loop()
+    this.type = opts.type || 'GET';
 
-    this.fail = opts.fail || loop()
+    this.ok = opts.ok || loop();
 
-    this.spmDom = [] // 埋点dom
+    this.fail = opts.fail || loop();
 
+    this.spmDom = []; // 埋点dom
   }
 
   init() {
+    const metaa = document.querySelectorAll('meta[name=data-aspm]');
 
-    this.spmDom = document.querySelectorAll('.J-spm')
+    const spama = metaa && metaa[0] && metaa[0].getAttribute('content');
 
-    this.scroll()
+    const spmb = document.body.getAttribute('data-spm');
 
-    this.click()
+    console.log(metaa, spama, spmb);
 
+    this.spmDom = document.querySelectorAll('[data-spm-expc], [data-spm-click]');
+
+    this.scroll();
+
+    this.click();
   }
 
   click() {
-    this.spmDom.forEach(item => {
-      if (item.getAttribute('click')) {
-        fetch()
-      } else {
-        return false
-      }
-    })
+    const self = this;
+    this.spmDom.forEach((item) => {
+      item.addEventListener('click', (e) => {
+        if (e.target.getAttribute('data-spm-click') === '' || e.target.getAttribute('data-spm-click') === 'true') {
+          const setData = {
+            params: self.buildSpmParams(item.getAttribute('data-spm-params')),
+          };
+          this.fetch(setData);
+        } else {
+          return false;
+        }
+      });
+    });
   }
 
   scroll() {
-    const self = this
+    const self = this;
     window.addEventListener('scroll', () => {
-      const scrollTop = document.body.scrollTop || document.documentElement.scrollTop
+      const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
 
-      const scrollBottom = scrollTop + window.innerHeight
+      const scrollBottom = scrollTop + window.innerHeight;
 
-      self.spmDom.forEach(item => {
+      self.spmDom.forEach((item) => {
+        if (item.getAttribute('data-spm-expc')) {
+          return false;
+        }
         if (scrollTop < (item.offsetTop + item.clientHeight) && scrollBottom > item.offsetTop) {
           if (item.getAttribute('isspm') === 'true') {
-            return false
-          } else {
-            item.setAttribute('isspm', 'true')
-            const setData = {
-              params: self.buildSpmParams(item.getAttribute('data-spmparams'))
-            }
-            self.fetch(setData)
+            return false;
           }
+          item.setAttribute('isspm', 'true');
+          const setData = {
+            params: self.buildSpmParams(item.getAttribute('data-spm-params')),
+          };
+          self.fetch(setData);
         }
-      })
-    })
-
+      });
+    });
   }
 
-  buildSpmParams(data) {
-    const obj = {}
+  buildSpmParams = (data) => {
+    const obj = {};
     try {
-      data.split('&').forEach(item => {
-        const pos = item.indexOf('=')
+      data.split('&').forEach((item) => {
+        const pos = item.indexOf('=');
         if (pos === -1) {
-          return false
-        } else {
-          const key = item.substring(0, pos)
-          const value = item.substring(pos + 1)
-          obj[key] = value
+          return false;
         }
-      })
+        const key = item.substring(0, pos);
+        const value = item.substring(pos + 1);
+        obj[key] = value;
+      });
     } catch (error) {
-      console.log('data of null')
+      console.log('data of null');
     }
-    return obj
+    return obj;
   }
 
   fetch(opts) {
     const self = this;
-    const {
-      params = {}
-    } = opts
-    const xhr = new XMLHttpRequest()
+
+    const params = Object.assign(opts, this.params);
+    const xhr = new XMLHttpRequest();
 
     if (!this.url) {
-      console.log('没有请求地址')
-      return false
+      console.log('没有请求地址');
+      return false;
     }
 
     try {
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText)
-            self.ok(data)
+            const data = JSON.parse(xhr.responseText);
+            self.ok(data);
           } else {
-            self.fail(JSON.parse(xhr.responseText))
+            self.fail(JSON.parse(xhr.responseText));
           }
         }
-      }
+      };
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
 
     switch (this.type) {
       case 'GET':
       case 'get':
-        console.log('get')
+        console.log('get');
         break;
       case 'POST':
       case 'post':
         // const fromData = new fromData()
         // console.log(fromData)
-        xhr.open('POST', this.url, false)
-        xhr.send(JSON.stringify(params))
+        xhr.open('POST', this.url, false);
+        xhr.send(JSON.stringify(params));
         break;
 
       default:
-        console.log('get')
+        console.log('get');
         break;
     }
   }
